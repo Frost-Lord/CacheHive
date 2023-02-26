@@ -1,21 +1,15 @@
-const { mongoConnect, mongoSet, mongoFindOne } = require("./DataBases/MongoDB/mongodbcontroller");
-const { redisConnect } = require("./DataBases/Redis/rediscontroller");
+const logger = require("./logger.js");
+///////////////////////////
+// MongoDB
+const MongoDBController = require("./DataBases/MongoDB/mongodbcontroller.js");
+///////////////////////////
+// Redis
+const RedisController = require("./DataBases/Redis/rediscontroller.js");
+///////////////////////////
 
-global.redisClient = false;
+let redisClient = null;
 
-async function connect(options = {
-  database: {
-    type: "",
-    url: ""
-  },
-  cache: {
-    toggle: undefined,
-    cacheOnly: undefined
-  },
-  redis: {
-    url: undefined
-  }
-}, CacheOptions) {
+async function connect(options = {}, dboptions = {}) {
   const {
     database: { type: databaseType, url: dbUrl } = {},
     cache: { toggle = true, cacheOnly = false } = {},
@@ -23,22 +17,26 @@ async function connect(options = {
   } = options;
 
   if (databaseType == "mongodb" && dbUrl) {
-    await mongoConnect(dbUrl, CacheOptions);
+    await MongoDBController.mongoConnect(dbUrl, dboptions);
   }
 
-  if (databaseType == "redis" && redisUrl && toggle) {
-    await redisConnect(redisUrl);
+  if (redisUrl && toggle) {
+    redisClient = await RedisController.redisConnect(redisUrl);
   }
 
   return Promise.resolve();
 }
 
-async function set(key, value, data, Schema) {
-  return mongoSet(key, value, data, Schema);
+async function set({key, value, data, Schema}) {
+  return MongoDBController.mongoSet(key, value, data, Schema, redisClient);
 }
 
-async function findOne(key, value, Schema) {
-  return mongoFindOne(key, value, Schema);
+async function findOne({key, value, Schema}) {
+  return MongoDBController.mongoFindOne(key, value, Schema, redisClient);
 }
+
+setTimeout(() => {
+  logger.success("CACHEHIVE", "CacheHive is ready!");
+}, 1000);
 
 module.exports = { connect, set, findOne };

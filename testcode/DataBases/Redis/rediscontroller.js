@@ -1,45 +1,40 @@
 const logger = require("../../logger");
+const { createClient } = require("redis");
 
-async function connect(redisOptions) {
-  let client;
+async function redisConnect(redisOptions) {
   try {
-    client = redis.createClient({
+    const client = createClient({
       url: redisOptions
     });
+
+    await client.connect().catch((error) => {
+      logger.error("Redis", "Error connecting to Redis: " + error);
+    });
+
+    client.on("connect", () => {
+      logger.success("Redis", "The server connected.");
+    });
+    client.on("error", (error) => {
+      logger.error("Redis", "Error connecting to Redis: " + error);
+    });
+    client.on("ready", () => {
+      logger.success("Redis", "Redis is connected");
+    });
+    client.on("reconnecting", () => {
+      logger.debug("Redis", "Connection lost, trying to reconnect...");
+    });
+    client.on("end", () => {
+      logger.error("Redis", "The redis server disconnected.");
+    });
+  
+    return client;
+    
   } catch (error) {
-    console.log(error);
-    throw new Error("Invalid Redis options:", redisOptions);
+    console.error(error);
+    throw new Error("Invalid Redis options: " + redisOptions);
   }
-
-  client.on("connect", () => {
-    console.log("CONNECTING - The redis server connecting.");
-  });
-  client.on("error", (error) => {
-    global.redisClient = false;
-    throw error;
-  });
-  client.on("ready", () => {
-    global.redisClient = true;
-    logger.success("Redis", "Redis is connected");
-  });
-  client.on("reconnecting", () => {
-    logger.debug("Redis", "Connection lost, trying to reconnect...");
-  });
-  client.on("end", () => {
-    global.redisClient = false;
-    logger.error("Redis", "The redis server disconnected.");
-  });
-  return client;
-}
-
-async function set() {
-}
-
-async function findOne() {
 }
 
 module.exports = {
-  connect,
-  set,
-  findOne,
+  redisConnect,
 };

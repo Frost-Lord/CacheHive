@@ -20,7 +20,7 @@ async function mongoConnect(mongoUrl, options = {}, mongooseOptions) {
         });
 
         mongoose.connection.on("connected", () => {
-            logger.success("MONGODB", "MongoDB is connected");
+            //logger.success("MONGODB", "MongoDB is connected");
         });
 
         mongoose.connection.on("reconnected", () => {
@@ -36,88 +36,62 @@ async function mongoConnect(mongoUrl, options = {}, mongooseOptions) {
     }
 }
 
-async function mongoSet({ key, value, data, Schema }) {
+async function mongoSet(key, value, data, Schema, redisClient) {
     let result;
-    const cacheOnly = false;
-    if (global.redisClient && !cacheOnly && global.redisClient == true) {
-        result = await new Promise((resolve, reject) => {
-            global.redisClient.set(value, JSON.stringify(data), "EX", 60, (error, response) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(response);
-                }
-            });
-        });
-    }
-    if (!cacheOnly) {
-        const document = await Schema.findOne({ key: value });
-        if (document) {
-            const updatedDoc = await Schema.findOneAndUpdate({ key: value }, data, { new: true });
-            if (updatedDoc) {
-                result = updatedDoc;
-            } else {
-                logger.error("MONGODB", "Update operation failed");
-            }
-        } else {
-            const newDoc = new Schema({ key: value, ...data });
-            result = await newDoc.save();
+    if (redisClient) {
+        try {
+            await redisClient.set(String(value), JSON.stringify(data), "EX", 60 * 60 * 24);
+        } catch (error) {
+            console.error(error);
+            throw new Error("Error setting value in Redis: " + error);
         }
+    }
+    const document = await Schema.findOne({ key: value });
+    if (document) {
+        const updatedDoc = await Schema.findOneAndUpdate({ key: value }, data, { new: true });
+        if (updatedDoc) {
+            result = updatedDoc;
+        } else {
+            logger.error("MONGODB", "Update operation failed");
+        }
+    } else {
+        const newDoc = new Schema({ key: value, ...data });
+        result = await newDoc.save();
     }
     return result;
 }
 
 
+async function mongoFindOne(key, value, Schema, redisClient) {
+    async function mongodbdata() {
+        let document = await Schema.findOne({ key: value });
+        if (document) {
+            return document;
+        } else {
+            return null;
+        }
+    }
 
-async function mongoFindOne({ key, value, Schema }) {
-    let data;
-    if (global.redisClient && global.redisClient == true) {
-        const cachedData = await new Promise((resolve, reject) => {
-            global.redisClient.get(value, (error, response) => {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(response);
+    if (redisClient) {
+        try {
+            const redisdata = await redisClient.get(String(value));
+            if (redisdata) {
+                return JSON.parse(redisdata);
+            } else {
+                const document = await mongodbdata();
+                if (document) {
+                    await redisClient.set(String(value), JSON.stringify(document), "EX", 60 * 60 * 24);
                 }
-            });
-        });
-        if (cachedData) {
-            try {
-                data = JSON.parse(cachedData);
-                console.log("Retrieved data from Redis cache:", data);
-            } catch (error) {
-                console.error("Failed to parse Redis cache data:", error);
-                await new Promise((resolve, reject) => {
-                    global.redisClient.del(value, (error, response) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(response);
-                        }
-                    });
-                });
+                return document;
             }
+        } catch (error) {
+            console.error(error);
+            throw new Error("Error setting value in Redis: " + error);
         }
+    } else {
+        const document = await mongodbdata();
+        return document;
     }
-    if (!data) {
-        const document = await Schema.findOne({ key: value });
-        data = document;
-        if (data) {
-            if (global.redisClient && global.redisClient == true) {
-                await new Promise((resolve, reject) => {
-                    global.redisClient.set(value, JSON.stringify(data), "EX", 60, (error, response) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve(response);
-                        }
-                    });
-                });
-                console.log("Stored data in Redis cache:", data);
-            }
-        }
-    }
-    return data;
 }
 
 module.exports = {
