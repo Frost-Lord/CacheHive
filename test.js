@@ -40,7 +40,7 @@ async function test() {
   console.log(userdata ? "Data saved to MongoDB" : "Data not saved to MongoDB");
 
   const logdata = await CacheHive.findOne({ key: 'name', value: "jeff", Schema: UserSchema });
-  //console.log(logdata);
+  console.log(logdata);
 
 }
 

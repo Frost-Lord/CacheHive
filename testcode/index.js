@@ -6,6 +6,9 @@ const MongoDBController = require("./DataBases/MongoDB/mongodbcontroller.js");
 // Redis
 const RedisController = require("./DataBases/Redis/rediscontroller.js");
 ///////////////////////////
+// PostgresQL
+const PostgresQLController = require("./DataBases/PostgresQL/PostgresQLcontroller.js");
+///////////////////////////
 
 let redisClient = null;
 
@@ -18,6 +21,10 @@ async function connect(options = {}, dboptions = {}) {
 
   if (databaseType == "mongodb" && dbUrl) {
     await MongoDBController.mongoConnect(dbUrl, dboptions);
+  }
+
+  if (databaseType == "postgresql" && dbUrl) {
+    await PostgresQLController.pgConnect(dbUrl);
   }
 
   if (redisUrl && toggle) {
@@ -35,8 +42,5 @@ async function findOne({key, value, Schema}) {
   return MongoDBController.mongoFindOne(key, value, Schema, redisClient);
 }
 
-setTimeout(() => {
-  logger.success("CACHEHIVE", "CacheHive is ready!");
-}, 1000);
-
+logger.success("CACHEHIVE", "CacheHive is ready!");
 module.exports = { connect, set, findOne };
