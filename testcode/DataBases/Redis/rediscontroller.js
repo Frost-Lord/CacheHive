@@ -1,6 +1,6 @@
 const logger = require("../../logger");
 
-async function createRedisClient(redisOptions) {
+async function connect(redisOptions) {
   let client;
   try {
     client = redis.createClient({
@@ -39,7 +39,7 @@ async function findOne() {
 }
 
 module.exports = {
-  createRedisClient,
+  connect,
   set,
   findOne,
 };

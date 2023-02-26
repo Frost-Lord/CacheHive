@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const logger = require("../../logger");
 
-async function connect(mongoUrl, options = {}, mongooseOptions) {
+async function mongoConnect(mongoUrl, options = {}, mongooseOptions) {
     try {
         mongoose.connect(mongoUrl, mongooseOptions || {
             keepAlive: true,
@@ -36,7 +36,7 @@ async function connect(mongoUrl, options = {}, mongooseOptions) {
     }
 }
 
-async function set({ key, value, data, Schema }) {
+async function mongoSet({ key, value, data, Schema }) {
     let result;
     const cacheOnly = false;
     if (global.redisClient && !cacheOnly && global.redisClient == true) {
@@ -69,7 +69,7 @@ async function set({ key, value, data, Schema }) {
 
 
 
-async function findOne({ key, value, Schema }) {
+async function mongoFindOne({ key, value, Schema }) {
     let data;
     if (global.redisClient && global.redisClient == true) {
         const cachedData = await new Promise((resolve, reject) => {
@@ -121,7 +121,7 @@ async function findOne({ key, value, Schema }) {
 }
 
 module.exports = {
-    connect,
-    set,
-    findOne,
+    mongoConnect,
+    mongoSet,
+    mongoFindOne,
 };

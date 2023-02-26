@@ -1,46 +1,44 @@
-const logger = require("./logger");
+const { mongoConnect, mongoSet, mongoFindOne } = require("./DataBases/MongoDB/mongodbcontroller");
+const { redisConnect } = require("./DataBases/Redis/rediscontroller");
+
 global.redisClient = false;
 
-///////////////////////////
-// MongoDB
-const MongoDBController = require("./DataBases/MongoDB/mongodbcontroller.js");
-///////////////////////////
-// Redis
-const RedisController = require("./DataBases/Redis/rediscontroller.js");
-///////////////////////////
-
-async function connect(options = {}, mongooseOptions) {
+async function connect(options = {
+  database: {
+    type: "",
+    url: ""
+  },
+  cache: {
+    toggle: undefined,
+    cacheOnly: undefined
+  },
+  redis: {
+    url: undefined
+  }
+}, CacheOptions) {
   const {
-    database: { type: databasetype, url: dbUrl } = {},
+    database: { type: databaseType, url: dbUrl } = {},
     cache: { toggle = true, cacheOnly = false } = {},
-    redis: { url: redisOptions } = {},
+    redis: { url: redisUrl } = {},
   } = options;
 
-  if (databasetype == 'mongodb' && dbUrl) {
-    await MongoDBController.connect(dbUrl, mongooseOptions);
+  if (databaseType == "mongodb" && dbUrl) {
+    await mongoConnect(dbUrl, CacheOptions);
   }
 
-  if (databasetype == 'redis' && redisOptions) {
-    await RedisController.connect(redisOptions);
-  }
-
-  if (toggle && redisOptions) {
-    global.redisClient = await RedisController.createRedisClient(redisOptions);
+  if (databaseType == "redis" && redisUrl && toggle) {
+    await redisConnect(redisUrl);
   }
 
   return Promise.resolve();
 }
 
 async function set(key, value, data, Schema) {
-  return MongoDBController.set(key, value, data, Schema, global.redisClient);
+  return mongoSet(key, value, data, Schema);
 }
 
 async function findOne(key, value, Schema) {
-  return MongoDBController.findOne(key, value, Schema, global.redisClient);
+  return mongoFindOne(key, value, Schema);
 }
 
-module.exports = {
-  connect,
-  set,
-  findOne,
-};
+module.exports = { connect, set, findOne };
