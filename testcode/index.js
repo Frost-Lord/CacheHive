@@ -11,6 +11,7 @@ const PostgresQLController = require("./DataBases/PostgresQL/PostgresQLcontrolle
 ///////////////////////////
 
 let redisClient = null;
+let PGClient = null;
 
 async function connect(options = {}, dboptions = {}) {
   const {
@@ -24,7 +25,7 @@ async function connect(options = {}, dboptions = {}) {
   }
 
   if (databaseType == "postgresql" && dbUrl) {
-    await PostgresQLController.pgConnect(dbUrl);
+    PGClient = await PostgresQLController.pgConnect(dbUrl);
   }
 
   if (redisUrl && toggle) {
@@ -34,13 +35,24 @@ async function connect(options = {}, dboptions = {}) {
   return Promise.resolve();
 }
 
-async function set({key, value, data, Schema}) {
+async function Mongoset({key, value, data, Schema}) {
   return MongoDBController.mongoSet(key, value, data, Schema, redisClient);
 }
 
-async function findOne({key, value, Schema}) {
+async function MongofindOne({key, value, Schema}) {
   return MongoDBController.mongoFindOne(key, value, Schema, redisClient);
 }
 
+async function PostgresSet({tableName, key, value, data}) {
+  return PostgresQLController.PostgresSet(PGClient, tableName, key, value, data, redisClient);
+}
+
+async function PostgresFindOne({tableName, key, value, data}) {
+  return PostgresQLController.PostgresFindOne(PGClient, tableName, key, value, data, redisClient);
+}
+
+
+
+
 logger.success("CACHEHIVE", "CacheHive is ready!");
-module.exports = { connect, set, findOne };
+module.exports = { connect, Mongoset, MongofindOne, PostgresSet, PostgresFindOne };

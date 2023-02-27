@@ -4,8 +4,8 @@ async function test() {
   await CacheHive.connect(
     {
       database: {
-        type: "mongodb",
-        url: "mongodb://127.0.0.1:27017/CacheHive",
+        type: "postgresql",
+        url: "postgresql://proxy:Fighting35a@166.0.134.132:5432/test",
       },
       cache: {
         toggle: true,
@@ -31,16 +31,15 @@ async function test() {
   
   const UserSchema = require("./database/userschema.js");
   
-  const userdata = await CacheHive.set({
-    key: "1",
-    data: data,
-    Schema: UserSchema,
-  });
+  //const userdata = await CacheHive.Mongoset({ key: "1", data: data, Schema: UserSchema});
   
-  console.log(userdata ? "Data saved to MongoDB" : "Data not saved to MongoDB");
+  //console.log(userdata ? "Data saved to MongoDB" : "Data not saved to MongoDB");
 
-  const logdata = await CacheHive.findOne({ key: 'name', value: "jeff", Schema: UserSchema });
-  console.log(logdata);
+  //const logdata = await CacheHive.MongofindOne({ key: 'name', value: "jeff", Schema: UserSchema });
+  //console.log(logdata);
+
+  const postgresqldata = await CacheHive.PostgresSet({tableName: "test", key: "id", value: "1", data: data});
+  console.log(postgresqldata ? "Data saved to PostgreSQL" : "Data not saved to PostgreSQL");
 
 }
 
