@@ -38,8 +38,19 @@ async function test() {
   //const logdata = await CacheHive.MongofindOne({ key: 'name', value: "jeff", Schema: UserSchema });
   //console.log(logdata);
 
-  const postgresqldata = await CacheHive.PostgresSet({tableName: "test", key: "id", value: "1", data: data});
+
+  const dataPG = {
+    id: "2",
+    name: "jack",
+    age: "17",
+    email: "jeff@gmail.com",
+  };
+
+  const postgresqldata = await CacheHive.PostgresSet({tableName: "test", key: "id", value: "1", data: dataPG});
   console.log(postgresqldata ? "Data saved to PostgreSQL" : "Data not saved to PostgreSQL");
+
+  const postgresqllogdata = await CacheHive.PostgresFindOne({tableName: "test", key: "name", value: "jack"});
+  console.log(postgresqllogdata);
 
 }
 

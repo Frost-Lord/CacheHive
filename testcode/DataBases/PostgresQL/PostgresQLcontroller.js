@@ -20,27 +20,26 @@ async function PostgresSet(PGClient, tableName, key, value, data, redisClient) {
             text: `UPDATE ${tableName} SET ${Object.keys(data).map((k, i) => `"${k}"=$${i + 1}`).join(", ")} WHERE "${key}"=$${Object.keys(data).length + 1} RETURNING *`,
             values: [...Object.values(data), value],
         };
-        const result = await PGClient.query(query).catch(e => logger.error(e));
+        const result = await PGClient.query(query);
 
         await PGClient.query('COMMIT');
 
         if (redisClient && result) {
             await redisClient.set(tableName, JSON.stringify(result.rows), 'EX', 60 * 60 * 24);
         }
-        return true;
+        return result;
     } catch (error) {
         if (error.code === '3D000') {
             await PGClient.query(`CREATE DATABASE ${PGClient.database}`);
             return await PostgresSet(PGClient, tableName, key, value, data, redisClient);
         }
-        console.error(error);
+        logger.error("PostgresSet", `Error while setting data to PostgresQL: ${error.message}`);
         return false;
     }
 }
 
 
 async function PostgresFindOne(PGClient, tableName, key, value, redisClient) {
-
     try {
         let result;
         if (redisClient) {
@@ -67,8 +66,6 @@ async function PostgresFindOne(PGClient, tableName, key, value, redisClient) {
     } catch (error) {
         console.error(error);
         return null;
-    } finally {
-        PGClient.release();
     }
 }
 
